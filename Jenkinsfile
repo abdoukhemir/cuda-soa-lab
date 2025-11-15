@@ -1,43 +1,63 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = "fastapi-matrix-app"
+        CONTAINER_NAME = "fastapi-matrix-container"
+        PORT = "8613"
+    }
 
     stages {
-
-        stage('GPU Sanity Test') {
+        stage('Checkout') {
             steps {
-                echo 'Installing required dependencies for cuda_test'
-                // TODO: write here
-                echo 'Running CUDA sanity check...'
-                // TODO: write here
+                git branch: 'main', url: 'https://github.com/abdoukhemir/cuda-soa-lab.git'
             }
         }
-
 
         stage('Build Docker Image') {
             steps {
-                // TODO: write here
-                echo "🐳 Building Docker image with GPU support..."
+                script {
+                    sh "docker build -t ${IMAGE_NAME}:latest ."
+                }
             }
         }
 
-        stage('Deploy Container') {
+        stage('Stop Old Container') {
             steps {
-                echo "🚀 Deploying Docker container..."
-                // TODO: write here
+                script {
+                    sh """
+                        if [ \$(docker ps -q -f name=${CONTAINER_NAME}) ]; then
+                            docker stop ${CONTAINER_NAME}
+                            docker rm ${CONTAINER_NAME}
+                        fi
+                    """
+                }
+            }
+        }
+
+        stage('Run New Container') {
+            steps {
+                script {
+                    sh "docker run -d --name ${CONTAINER_NAME} -p ${PORT}:${PORT} ${IMAGE_NAME}:latest"
+                }
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                script {
+                    sh "curl -s http://localhost:${PORT}/health"
+                }
             }
         }
     }
 
     post {
         success {
-            echo "🎉 Deployment completed successfully!"
+            echo "Deployment succeeded! App is running on port ${PORT}"
         }
         failure {
-            echo "💥 Deployment failed. Check logs for errors."
-        }
-        always {
-            echo "🧾 Pipeline finished."
+            echo "Deployment failed!"
         }
     }
 }
