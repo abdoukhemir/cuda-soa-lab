@@ -10,7 +10,8 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/abdoukhemir/cuda-soa-lab.git'
+                // Let Jenkins use the repository's default branch (avoid hardcoding 'main'/'master')
+                git url: 'https://github.com/abdoukhemir/cuda-soa-lab.git'
             }
         }
 
